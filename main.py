@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+
 from json import JSONDecoder
 import os
+import subprocess
 import sys
 import logging
 import threading
@@ -47,8 +50,19 @@ class MainHandler(tornado.web.RequestHandler):
             site_affected = True
             break
 
+    REMOTE_PATH = '/home/httpd/htdocs/cryptogram/'
     if site_affected:
       logging.info('Do pull.')
+      os.chdir('cryptogram')
+      puller = subprocess.Popen('git pull', shell=True)
+      puller.wait()
+      logging.info('Uploading files to server.')
+      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
+                '-o StrictHostKeyChecking=no site/* fast-beaker:%s'
+                % REMOTE_PATH)
+      os.chdir('..')
+
+      logging.info('All files up to date.')
 
 
 class TornadoServer(threading.Thread):
