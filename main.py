@@ -38,6 +38,18 @@ class MainHandler(tornado.web.RequestHandler):
     payload = JSONDecoder().decode(arg_payload)
     logging.info('Payload: %s.' % payload)
 
+    site_affected = False
+    to_explore = ['added', 'removed', 'modified']
+    for commit in payload['commits']:
+      for category in to_explore:
+        for _file in commit[category]:
+          if 'site' == os.path.dirname(_file):
+            site_affected = True
+            break
+
+    if site_affected:
+      logging.info('Do pull.')
+
 
 class TornadoServer(threading.Thread):
   def __init__(self):
