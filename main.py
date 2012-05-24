@@ -42,27 +42,43 @@ class MainHandler(tornado.web.RequestHandler):
     logging.info('Payload: %s.' % payload)
 
     site_affected = False
+    encoder_affected = False
     to_explore = ['added', 'removed', 'modified']
     for commit in payload['commits']:
       for category in to_explore:
         for _file in commit[category]:
-          if 'site' == os.path.dirname(_file):
+          _dirname = os.path.dirname(_file)
+          if 'site' == _dirname:
             site_affected = True
-            break
+          if 'site-encoder' == _dirname:
+            encoder_affected = True
 
-    REMOTE_PATH = '/home/httpd/htdocs/cryptogram/'
-    if site_affected:
-      logging.info('Do pull.')
+    site_path = '/home/httpd/htdocs/cryptogram/'
+    encoder_path = '/home/httpd/htdocs/cryptogram/encoder'
+    if site_affected or encoder_affected:
+      logging.info('Do repo pull.')
       os.chdir('cryptogram')
       puller = subprocess.Popen('git pull', shell=True)
       puller.wait()
-      logging.info('Uploading files to server.')
-      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
-                '-o StrictHostKeyChecking=no site/* fast-beaker:%s'
-                % REMOTE_PATH)
       os.chdir('..')
 
-      logging.info('All files up to date.')
+    if site_affected:
+      logging.info('Uploading site files to server.')
+      os.chdir('cryptogram')
+      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
+                '-o StrictHostKeyChecking=no site/* fast-beaker:%s'
+                % site_path)
+      os.chdir('..')
+      logging.info('Site files updated.')
+
+    if encoder_affected:
+      logging.info('Uploading encoder site files to server.')
+      os.chdir('cryptogram')
+      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
+                '-o StrictHostKeyChecking=no site-encoder/* fast-beaker:%s'
+                % encoder_path)
+      os.chdir('..')
+      logging.info('Encoder site files updated.')
 
 
 class TornadoServer(threading.Thread):
