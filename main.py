@@ -75,7 +75,7 @@ class MainHandler(tornado.web.RequestHandler):
       logging.info('Uploading encoder site files to server.')
       os.chdir('cryptogram')
       os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
-                '-o StrictHostKeyChecking=no site-encoder/* fast-beaker:%s'
+                '-o StrictHostKeyChecking=no -r site-encoder/* fast-beaker:%s'
                 % encoder_path)
       os.chdir('..')
       logging.info('Encoder site files updated.')
