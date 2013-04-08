@@ -48,10 +48,10 @@ class MainHandler(tornado.web.RequestHandler):
       for category in to_explore:
         for _file in commit[category]:
           _dirname = os.path.dirname(_file)
-          if 'site' == _dirname:
-            site_affected = True
           if 'site-encoder' == _dirname:
             encoder_affected = True
+          if 'site' == _dirname or 'site/' in _dirname:
+            site_affected = True
 
     site_path = '/home/httpd/htdocs/cryptogram/'
     encoder_path = '/home/httpd/htdocs/cryptogram/encoder'
@@ -66,7 +66,7 @@ class MainHandler(tornado.web.RequestHandler):
       logging.info('Uploading site files to server.')
       os.chdir('cryptogram')
       os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
-                '-o StrictHostKeyChecking=no site/* fast-beaker:%s'
+                '-o StrictHostKeyChecking=no -r site/* fast-beaker:%s'
                 % site_path)
       os.chdir('..')
       logging.info('Site files updated.')
