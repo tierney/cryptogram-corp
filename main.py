@@ -35,6 +35,27 @@ class Application(tornado.web.Application):
     tornado.web.Application.__init__(self, handlers, **settings)
 
 
+def DoUpdate(directory, path):
+  # Pull directory.
+  site_path = os.path.join('/home/httpd/htdocs/cryptogram', path)
+
+  logging.info('Do repo pull.')
+  os.chdir('cryptogram')
+  puller = subprocess.Popen('git pull', shell=True)
+  puller.wait()
+  os.chdir('..')
+
+  # Do the push
+  logging.info('Uploading site files to server.')
+  os.chdir('cryptogram')
+  cmd = 'scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
+            '-o StrictHostKeyChecking=no -r %s/* beaker-2.news.cs.nyu.edu:%s' % (directory, site_path)
+  print cmd
+  os.system(cmd)
+  os.chdir('..')
+  logging.info('%s files updated.' % directory)
+
+
 class MainHandler(tornado.web.RequestHandler):
   def post(self):
     arg_payload = self.get_argument('payload')
@@ -53,32 +74,10 @@ class MainHandler(tornado.web.RequestHandler):
           if 'site' == _dirname or 'site/' in _dirname:
             site_affected = True
 
-    site_path = '/home/httpd/htdocs/cryptogram/'
-    encoder_path = '/home/httpd/htdocs/cryptogram/encoder'
-    if site_affected or encoder_affected:
-      logging.info('Do repo pull.')
-      os.chdir('cryptogram')
-      puller = subprocess.Popen('git pull', shell=True)
-      puller.wait()
-      os.chdir('..')
-
     if site_affected:
-      logging.info('Uploading site files to server.')
-      os.chdir('cryptogram')
-      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
-                '-o StrictHostKeyChecking=no -r site/* fast-beaker:%s'
-                % site_path)
-      os.chdir('..')
-      logging.info('Site files updated.')
-
+      DoUpdate("site", "")
     if encoder_affected:
-      logging.info('Uploading encoder site files to server.')
-      os.chdir('cryptogram')
-      os.system('scp -q -i ~/.ssh/id_dsa -o UserKnownHostsFile=/dev/null '\
-                '-o StrictHostKeyChecking=no -r site-encoder/* fast-beaker:%s'
-                % encoder_path)
-      os.chdir('..')
-      logging.info('Encoder site files updated.')
+      DoUpdate("site-encoder", "encoder")
 
 
 class TornadoServer(threading.Thread):
@@ -90,6 +89,9 @@ class TornadoServer(threading.Thread):
 
 
 def main(argv):
+  DoUpdate('site', '')
+  DoUpdate('site-encoder', 'encoder')
+
   # Start user-facing web server.
   http_server = tornado.httpserver.HTTPServer(Application())
   http_server.listen(options.port)
